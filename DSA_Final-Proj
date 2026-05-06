@@ -1,547 +1,252 @@
-/*
- * ============================================================
- *   DORMITORY MANAGEMENT SYSTEM  —  Console-Based C++
- *   File handling via JSON-style plain-text (dorm_data.txt)
- * ============================================================
- */
-
 #include <iostream>
+#include <vector>
 #include <fstream>
 #include <sstream>
-#include <vector>
-#include <string>
-#include <iomanip>
-#include <algorithm>
-#include <map>
-
+#include <map>   
 using namespace std;
 
-// ── CONSTANTS ──────────────────────────────────────────────
-const int   TOTAL_ROOMS   = 10;
-const int   ROOM_CAPACITY = 4;
-const string DATA_FILE    = "dorm_data.txt";
-
-// ── DATA STRUCTURES ────────────────────────────────────────
+// ── STRUCTURES ─────────────────────
 struct Tenant {
     string name;
-    int    age;
-    string room;     // e.g. "Room 1"
-    string payment;  // "Paid" | "Unpaid"
+    int age;
+    string room;
+    string payment;
 };
 
+struct Room {
+    int capacity = 4;
+    vector<string> occupants;
+};
+
+// ── GLOBAL DATA ─────────────────────
 vector<Tenant> tenants;
+map<string, Room> rooms;
 
-// ── HELPERS ────────────────────────────────────────────────
-void clearScreen() {
-#ifdef _WIN32
-    system("cls");
-#else
-    system("clear");
-#endif
-}
-
-void pausePrompt() {
-    cout << "\nPress Enter to continue...";
-    cin.ignore();
-    cin.get();
-}
-
-// Ask a yes/no question; returns true for 'y'/'Y'
-bool askYesNo(const string& question) {
-    char answer;
-    while (true) {
-        cout << question << " (y/n): ";
-        cin >> answer;
-        cin.ignore();
-        if (answer == 'y' || answer == 'Y') return true;
-        if (answer == 'n' || answer == 'N') return false;
-        cout << "  [!] Please enter 'y' or 'n'.\n";
+// ── INITIALIZE ROOMS ─────────────────────
+void initializeRooms() {
+    for (int i = 1; i <= 10; i++) {
+        rooms["Room " + to_string(i)] = Room();
     }
 }
 
-string trim(const string& s) {
-    size_t start = s.find_first_not_of(" \t\r\n");
-    size_t end   = s.find_last_not_of(" \t\r\n");
-    return (start == string::npos) ? "" : s.substr(start, end - start + 1);
+// ── SYNC ROOMS ─────────────────────
+void syncRooms() {
+    for (auto &r : rooms) {
+        r.second.occupants.clear();
+    }
+
+    for (auto &t : tenants) {
+        rooms[t.room].occupants.push_back(t.name);
+    }
 }
 
-// Valid room name check
-bool validRoom(const string& r) {
-    for (int i = 1; i <= TOTAL_ROOMS; i++)
-        if (r == "Room " + to_string(i)) return true;
-    return false;
-}
-
-// Count occupants for a given room
-int occupantCount(const string& room) {
-    int count = 0;
-    for (auto& t : tenants)
-        if (t.room == room) count++;
-    return count;
-}
-
-// Find tenant index by name (-1 if not found)
-int findTenant(const string& name) {
-    for (int i = 0; i < (int)tenants.size(); i++)
-        if (tenants[i].name == name) return i;
-    return -1;
-}
-
-// ── FILE HANDLING ──────────────────────────────────────────
+// ── SAVE DATA ─────────────────────
 void saveData() {
-    ofstream file(DATA_FILE);
-    if (!file) {
-        return;
+    ofstream file("data.txt");
+
+    for (auto &t : tenants) {
+        file << t.name << "," << t.age << "," << t.room << "," << t.payment << endl;
     }
-    // Format: name|age|room|payment  (one tenant per line)
-    for (auto& t : tenants)
-        file << t.name << "|" << t.age << "|" << t.room << "|" << t.payment << "\n";
+
     file.close();
 }
 
+// ── LOAD DATA ─────────────────────
 void loadData() {
-    tenants.clear();
-    ifstream file(DATA_FILE);
-    if (!file) return;   // first run — no file yet
-
+    ifstream file("data.txt");
     string line;
+
     while (getline(file, line)) {
-        if (trim(line).empty()) continue;
         stringstream ss(line);
-        string token;
         Tenant t;
 
-        getline(ss, token, '|'); t.name    = trim(token);
-        getline(ss, token, '|'); t.age     = stoi(trim(token));
-        getline(ss, token, '|'); t.room    = trim(token);
-        getline(ss, token, '|'); t.payment = trim(token);
+        getline(ss, t.name, ',');
+        ss >> t.age;
+        ss.ignore();
+        getline(ss, t.room, ',');
+        getline(ss, t.payment);
 
-        if (!t.name.empty() && validRoom(t.room))
-            tenants.push_back(t);
+        tenants.push_back(t);
     }
+
     file.close();
+    syncRooms();
 }
 
-// ── DISPLAY HELPERS ────────────────────────────────────────
-void printSeparator(int width = 65) {
-    cout << string(width, '-') << "\n";
+// ── DISPLAY TENANTS ─────────────────────
+void viewTenants() {
+    cout << "\n-------------\n";
+    cout << "   TENANT LIST   ";
+    cout << "\n-------------\n";
+    for (int i = 0; i < tenants.size(); i++) {
+        cout << i + 1 << ". "
+             << tenants[i].name << " | Age: " << tenants[i].age
+             << " | " << tenants[i].room
+             << " | " << tenants[i].payment << endl;
+    }
 }
 
-void printHeader(const string& title) {
-    printSeparator();
-    cout << "  " << title << "\n";
-    printSeparator();
-}
+// ── ADD TENANT ─────────────────────
+void addTenant() {
+    Tenant t;
+    
+    cout << "\n-----------------\n";
+    cout << "    ADDING TENANT    ";
+    cout << "\n-----------------\n";
+    cout << "Enter name: ";
+    cin.ignore();
+    getline(cin, t.name);
 
-void listTenants() {
-    printHeader("TENANT LIST");
-    if (tenants.empty()) {
-        cout << "  No tenants recorded.\n";
-        printSeparator();
+    cout << "Enter age: ";
+    cin >> t.age;
+
+    cout << "Enter room (Room 1 - Room 10): ";
+    cin.ignore();
+    getline(cin, t.room);
+
+    syncRooms();
+
+    if (rooms[t.room].occupants.size() >= rooms[t.room].capacity) {
+        cout << "Room FULL!\n";
         return;
     }
-    cout << left
-         << setw(4)  << "No."
-         << setw(20) << "Name"
-         << setw(5)  << "Age"
-         << setw(10) << "Room"
-         << setw(10) << "Payment"
-         << "\n";
-    printSeparator();
-    for (int i = 0; i < (int)tenants.size(); i++) {
-        auto& t = tenants[i];
-        cout << left
-             << setw(4)  << (i + 1)
-             << setw(20) << t.name
-             << setw(5)  << t.age
-             << setw(10) << t.room
-             << setw(10) << t.payment
-             << "\n";
-    }
-    printSeparator();
-}
 
-// ── TENANT OPERATIONS ──────────────────────────────────────
-
-// 1) ADD TENANT
-void addTenant() {
-    clearScreen();
-    printHeader("ADD NEW TENANT");
-
-    Tenant t;
-
-    // Name
-    cout << "  Enter tenant name: ";
-    getline(cin, t.name);
-    t.name = trim(t.name);
-    if (t.name.empty()) { cout << "  [!] Name cannot be empty.\n"; pausePrompt(); return; }
-
-    if (findTenant(t.name) != -1) {
-        cout << "  [!] A tenant with that name already exists.\n";
-        pausePrompt(); return;
-    }
-
-    // Age
-    cout << "  Enter age: ";
-    string ageStr;
-    getline(cin, ageStr);
-    try { t.age = stoi(trim(ageStr)); }
-    catch (...) { t.age = 0; }
-
-    // Room selection
-    cout << "\n  Available rooms (capacity " << ROOM_CAPACITY << " each):\n";
-    for (int i = 1; i <= TOTAL_ROOMS; i++) {
-        string rn = "Room " + to_string(i);
-        int occ = occupantCount(rn);
-        cout << "    " << rn << "  [" << occ << "/" << ROOM_CAPACITY << "]";
-        if (occ >= ROOM_CAPACITY) cout << "  FULL";
-        cout << "\n";
-    }
-    cout << "  Enter room (e.g. Room 3): ";
-    getline(cin, t.room);
-    t.room = trim(t.room);
-
-    if (!validRoom(t.room)) {
-        cout << "  [!] Invalid room.\n"; pausePrompt(); return;
-    }
-    if (occupantCount(t.room) >= ROOM_CAPACITY) {
-        cout << "  [!] That room is full.\n"; pausePrompt(); return;
-    }
-
-    // Payment
-    t.payment = askYesNo("  Has this tenant paid?") ? "Paid" : "Unpaid";
-
-    // Confirm
-    if (!askYesNo("  Save this tenant?")) {
-        cout << "  Cancelled.\n"; pausePrompt(); return;
-    }
+    cout << "Payment (Paid/Unpaid): ";
+    getline(cin, t.payment);
 
     tenants.push_back(t);
+
     saveData();
-    cout << "  [✓] Tenant added successfully.\n";
-    pausePrompt();
+    cout << "Tenant added successfully!\n";
 }
 
-// 2) UPDATE TENANT
+// ── UPDATE TENANT ─────────────────────
 void updateTenant() {
-    clearScreen();
-    listTenants();
-    if (tenants.empty()) { pausePrompt(); return; }
+    viewTenants();
+    int choice;
+    
+    cout << "\n------------------\n";
+    cout << "    UPDATING TENANT   ";
+    cout << "\n------------------\n";
+    cout << "Select tenant number to update: ";
+    cin >> choice;
 
-    cout << "  Enter the name of the tenant to update: ";
-    string search;
-    getline(cin, search);
-    int idx = findTenant(trim(search));
+    if (choice < 1 || choice > tenants.size()) return;
 
-    if (idx == -1) {
-        cout << "  [!] Tenant not found.\n"; pausePrompt(); return;
-    }
+    Tenant &t = tenants[choice - 1];
 
-    Tenant& t = tenants[idx];
-    cout << "\n  Updating: " << t.name << " | Age: " << t.age
-         << " | " << t.room << " | " << t.payment << "\n\n";
+    cout << "Name: ";
+    cin.ignore();
+    getline(cin, t.name);
 
-    // Name
-    if (askYesNo("  Update name?")) {
-        cout << "  New name: ";
-        string newName; getline(cin, newName);
-        newName = trim(newName);
-        if (!newName.empty()) t.name = newName;
-    }
+    cout << "Age: ";
+    cin >> t.age;
 
-    // Age
-    if (askYesNo("  Update age?")) {
-        cout << "  New age: ";
-        string a; getline(cin, a);
-        try { t.age = stoi(trim(a)); } catch (...) {}
-    }
+    cout << "Room: ";
+    cin.ignore();
+    getline(cin, t.room);
 
-    // Room
-    if (askYesNo("  Update room?")) {
-        cout << "\n  Available rooms:\n";
-        for (int i = 1; i <= TOTAL_ROOMS; i++) {
-            string rn = "Room " + to_string(i);
-            int occ = occupantCount(rn);
-            // subtract self if same room
-            if (rn == t.room) occ--;
-            cout << "    " << rn << "  [" << occ << "/" << ROOM_CAPACITY << "]";
-            if (occ >= ROOM_CAPACITY) cout << "  FULL";
-            cout << "\n";
-        }
-        cout << "  New room: ";
-        string newRoom; getline(cin, newRoom);
-        newRoom = trim(newRoom);
+    cout << "Payment: ";
+    getline(cin, t.payment);
 
-        if (!validRoom(newRoom)) {
-            cout << "  [!] Invalid room — room unchanged.\n";
-        } else {
-            int occ = occupantCount(newRoom);
-            if (newRoom != t.room && occ >= ROOM_CAPACITY) {
-                cout << "  [!] Room full — room unchanged.\n";
-            } else {
-                t.room = newRoom;
-            }
-        }
-    }
-
-    // Payment
-    if (askYesNo("  Update payment status?")) {
-        t.payment = askYesNo("  Mark as Paid?") ? "Paid" : "Unpaid";
-    }
-
-    if (askYesNo("  Save changes?")) {
-        saveData();
-        cout << " Tenant updated.\n";
-    } else {
-        loadData();   // discard changes by reloading
-        cout << " Changes discarded.\n";
-    }
-    pausePrompt();
+    saveData();
+    cout << "Updated successfully!\n";
 }
 
-// 3) DELETE TENANT
+// ── DELETE TENANT ─────────────────────
 void deleteTenant() {
-    clearScreen();
-    listTenants();
-    if (tenants.empty()) { pausePrompt(); return; }
+    viewTenants();
+    int choice;
+    
+    cout << "\n----------------\n";
+    cout << "    DELETE TENANT   ";
+    cout << "\n----------------\n";
+    cout << "Select tenant number to delete: ";
+    cin >> choice;
 
-    cout << "  Enter the name of the tenant to delete: ";
-    string search; getline(cin, search);
-    int idx = findTenant(trim(search));
+    if (choice < 1 || choice > tenants.size()) return;
 
-    if (idx == -1) {
-        cout << "  [!] Tenant not found.\n"; pausePrompt(); return;
-    }
+    tenants.erase(tenants.begin() + choice - 1);
 
-    cout << "  Found: " << tenants[idx].name << " — " << tenants[idx].room << "\n";
-    if (askYesNo("  Are you sure you want to delete this tenant?")) {
-        tenants.erase(tenants.begin() + idx);
-        saveData();
-        cout << "  [✓] Tenant deleted.\n";
-    } else {
-        cout << "  Cancelled.\n";
-    }
-    pausePrompt();
+    saveData();
+    cout << "Deleted successfully!\n";
 }
 
-// 4) UPDATE PAYMENT STATUS
-void updatePaymentStatus() {
-    clearScreen();
-    printHeader("UPDATE PAYMENT STATUS");
-
-    if (tenants.empty()) {
-        cout << "  No tenants recorded.\n";
-        pausePrompt(); return;
+// ── ROOM STATUS ─────────────────────
+void viewRooms() {
+    syncRooms();
+    
+    cout << "\n-------------\n";
+    cout << "   ROOM STATUS   ";
+    cout << "\n-------------\n";
+    for (auto &r : rooms) {
+        cout << r.first << " -> "
+             << r.second.occupants.size()
+             << "/" << r.second.capacity << " occupied\n";
     }
-
-    // Show all tenants with their current payment status
-    cout << left
-         << setw(4)  << "No."
-         << setw(20) << "Name"
-         << setw(10) << "Room"
-         << "Payment Status\n";
-    printSeparator();
-    for (int i = 0; i < (int)tenants.size(); i++) {
-        auto& t = tenants[i];
-        string tag = (t.payment == "Unpaid") ? "  << UNPAID" : "";
-        cout << left
-             << setw(4)  << (i + 1)
-             << setw(20) << t.name
-             << setw(10) << t.room
-             << t.payment << tag << "\n";
-    }
-    printSeparator();
-
-    // Filter options
-    cout << "  Filter by:  [1] All  [2] Unpaid only  [3] Paid only\n";
-    cout << "  Choice: ";
-    string filter; getline(cin, filter);
-    filter = trim(filter);
-
-    // Build filtered list
-    vector<int> indices;
-    for (int i = 0; i < (int)tenants.size(); i++) {
-        if (filter == "2" && tenants[i].payment != "Unpaid") continue;
-        if (filter == "3" && tenants[i].payment != "Paid")   continue;
-        indices.push_back(i);
-    }
-
-    if (indices.empty()) {
-        cout << "  No tenants match that filter.\n";
-        pausePrompt(); return;
-    }
-
-    // Mark all at once or one by one
-    if (askYesNo("  Update ALL filtered tenants at once?")) {
-        bool markPaid = askYesNo(" Mark all as Paid? (No = mark all as Unpaid)");
-        string newStatus = markPaid ? "Paid" : "Unpaid";
-        int count = 0;
-        for (int idx : indices) {
-            if (tenants[idx].payment != newStatus) {
-                tenants[idx].payment = newStatus;
-                count++;
-            }
-        }
-        if (count > 0) {
-            saveData();
-            cout << "  [✓] " << count << " tenant(s) marked as " << newStatus << ".\n";
-        } else {
-            cout << "  No changes needed — all already " << newStatus << ".\n";
-        }
-        pausePrompt(); return;
-    }
-
-    // One by one
-    cout << "\n  Enter tenant name to update (or press Enter to cancel): ";
-    string search; getline(cin, search);
-    search = trim(search);
-    if (search.empty()) { cout << "  Cancelled.\n"; pausePrompt(); return; }
-
-    int idx = findTenant(search);
-    if (idx == -1) {
-        cout << "  [!] Tenant not found.\n"; pausePrompt(); return;
-    }
-
-    Tenant& t = tenants[idx];
-    cout << "\n  Tenant  : " << t.name << "\n";
-    cout << "  Room    : " << t.room  << "\n";
-    cout << "  Current : " << t.payment << "\n\n";
-
-    string newStatus = askYesNo("  Mark as Paid?") ? "Paid" : "Unpaid";
-
-    if (newStatus == t.payment) {
-        cout << "  No change — already " << t.payment << ".\n";
-    } else {
-        t.payment = newStatus;
-        saveData();
-        cout << "  [✓] Payment status updated to " << newStatus << ".\n";
-    }
-    pausePrompt();
 }
 
-// ── ROOM AVAILABILITY ──────────────────────────────────────
-void showRooms() {
-    clearScreen();
-    printHeader("ROOM AVAILABILITY");
-    cout << left << setw(12) << "Room" << setw(18) << "Occupancy" << "Tenants\n";
-    printSeparator();
-    for (int i = 1; i <= TOTAL_ROOMS; i++) {
-        string rn = "Room " + to_string(i);
-        int occ = occupantCount(rn);
-        string status = to_string(occ) + "/" + to_string(ROOM_CAPACITY);
-        if (occ >= ROOM_CAPACITY) status += " FULL";
+// ── SUMMARY ─────────────────────
+void summary() {
+    syncRooms();
 
-        cout << left << setw(12) << rn << setw(18) << status;
+    int totalCapacity = 0, occupied = 0, paid = 0;
 
-        // list occupant names
-        bool first = true;
-        for (auto& t : tenants) {
-            if (t.room == rn) {
-                if (!first) cout << ", ";
-                cout << t.name;
-                first = false;
-            }
-        }
-        cout << "\n";
+    for (auto &r : rooms) {
+        totalCapacity += r.second.capacity;
+        occupied += r.second.occupants.size();
     }
-    printSeparator();
-    pausePrompt();
-}
 
-// ── SUMMARY ────────────────────────────────────────────────
-void showSummary() {
-    clearScreen();
-    printHeader("SYSTEM SUMMARY");
-
-    int totalCap  = TOTAL_ROOMS * ROOM_CAPACITY;
-    int occupied  = 0;
-    for (int i = 1; i <= TOTAL_ROOMS; i++)
-        occupied += occupantCount("Room " + to_string(i));
-
-    int paid   = 0, unpaid = 0;
-    for (auto& t : tenants)
-        t.payment == "Paid" ? paid++ : unpaid++;
-
-    cout << "  Total Room Capacity  : " << totalCap          << "\n";
-    cout << "  Occupied Slots       : " << occupied           << "\n";
-    cout << "  Available Slots      : " << (totalCap - occupied) << "\n";
-    printSeparator();
-    cout << "  Total Tenants        : " << tenants.size()     << "\n";
-    cout << "  Paid                 : " << paid               << "\n";
-    cout << "  Unpaid               : " << unpaid             << "\n";
-    printSeparator();
-
-    // Per-room breakdown
-    cout << "\n  Per-Room Breakdown:\n";
-    printSeparator();
-    cout << left << setw(12) << "Room" << setw(15) << "Occupancy"
-         << setw(8) << "Paid" << "Unpaid\n";
-    printSeparator();
-    for (int i = 1; i <= TOTAL_ROOMS; i++) {
-        string rn = "Room " + to_string(i);
-        int occ = occupantCount(rn);
-        int rPaid = 0, rUnpaid = 0;
-        for (auto& t : tenants)
-            if (t.room == rn) (t.payment == "Paid" ? rPaid : rUnpaid)++;
-        cout << left << setw(12) << rn
-             << setw(15) << (to_string(occ) + "/" + to_string(ROOM_CAPACITY))
-             << setw(8) << rPaid << rUnpaid << "\n";
+    for (auto &t : tenants) {
+        if (t.payment == "Paid") paid++;
     }
-    printSeparator();
-    pausePrompt();
+
+    cout << "\n-------------\n";
+    cout << "     SUMMARY    ";
+    cout << "\n-------------\n";
+    cout << "Total Capacity: " << totalCapacity << endl;
+    cout << "Occupied: " << occupied << endl;
+    cout << "Available: " << totalCapacity - occupied << endl;
+    cout << "Total Tenants: " << tenants.size() << endl;
+    cout << "Paid: " << paid << endl;
+    cout << "Unpaid: " << tenants.size() - paid << endl;
 }
 
-// ── MAIN MENU ──────────────────────────────────────────────
-void showMenu() {
-    clearScreen();
-    printSeparator();
-    cout << "      DORMITORY MANAGEMENT SYSTEM\n";
-    printSeparator();
-    cout << "  [1]  View All Tenants\n";
-    cout << "  [2]  Add Tenant\n";
-    cout << "  [3]  Update Tenant\n";
-    cout << "  [4]  Delete Tenant\n";
-    cout << "  [5]  Room Availability\n";
-    cout << "  [6]  Summary Report\n";
-    cout << "  [7]  Update Payment Status\n";
-    cout << "  [0]  Exit\n";
-    printSeparator();
-    cout << "  Choice: ";
-}
-
-// ── ENTRY POINT ────────────────────────────────────────────
+// ── MAIN MENU ─────────────────────
 int main() {
+    initializeRooms();
     loadData();
 
-    string choice;
-    while (true) {
-        showMenu();
-        getline(cin, choice);
-        choice = trim(choice);
+    string again = "yes";
 
-        if (choice == "1") {
-            clearScreen(); listTenants(); pausePrompt();
-        } else if (choice == "2") {
-            addTenant();
-        } else if (choice == "3") {
-            updateTenant();
-        } else if (choice == "4") {
-            deleteTenant();
-        } else if (choice == "5") {
-            showRooms();
-        } else if (choice == "6") {
-            showSummary();
-        } else if (choice == "7") {
-            updatePaymentStatus();
-        } else if (choice == "0") {
-            if (askYesNo("  Exit the program?")) {
-                cout << "  Goodbye!\n";
-                break;
-            }
-        } else {
-            cout << "  [!] Invalid choice.\n";
-            pausePrompt();
+    while (again == "yes") {
+        int choice;
+        
+        cout << "\n==================================\n";
+        cout << "       DORM MANAGEMENT SYSTEM         ";
+        cout << "\n==================================\n";
+        cout << "1. Add Tenant\n";
+        cout << "2. View Tenants\n";
+        cout << "3. Update Tenant\n";
+        cout << "4. Delete Tenant\n";
+        cout << "5. Room Status\n";
+        cout << "6. Summary\n\n";
+        cout << "Choose: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: addTenant(); break;
+            case 2: viewTenants(); break;
+            case 3: updateTenant(); break;
+            case 4: deleteTenant(); break;
+            case 5: viewRooms(); break;
+            case 6: summary(); break;
         }
+
+        cout << "\nDo you want to continue? (yes/no): ";
+        cin >> again;
     }
+
+    cout << "Program Ended.\n";
     return 0;
 }
