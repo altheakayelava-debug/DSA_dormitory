@@ -75,9 +75,9 @@ void loadData() {
 
 // ── DISPLAY TENANTS ─────────────────────
 void viewTenants() {
-    cout << "\n-------------\n";
-    cout << "   TENANT LIST   ";
-    cout << "\n-------------\n";
+    cout << "\n-----------------\n";
+    cout <<  "  TENANTS LIST    ";
+    cout << "\n-----------------\n";
     for (int i = 0; i < tenants.size(); i++) {
         cout << i + 1 << ". "
              << tenants[i].name << " | Age: " << tenants[i].age
@@ -91,7 +91,7 @@ void addTenant() {
     Tenant t;
     
     cout << "\n-----------------\n";
-    cout << "    ADDING TENANT    ";
+    cout <<     "  ADDING TENANT    ";
     cout << "\n-----------------\n";
     cout << "Enter name: ";
     cin.ignore();
@@ -125,9 +125,6 @@ void updateTenant() {
     viewTenants();
     int choice;
     
-    cout << "\n------------------\n";
-    cout << "    UPDATING TENANT   ";
-    cout << "\n------------------\n";
     cout << "Select tenant number to update: ";
     cin >> choice;
 
@@ -158,9 +155,6 @@ void deleteTenant() {
     viewTenants();
     int choice;
     
-    cout << "\n----------------\n";
-    cout << "    DELETE TENANT   ";
-    cout << "\n----------------\n";
     cout << "Select tenant number to delete: ";
     cin >> choice;
 
@@ -176,16 +170,18 @@ void deleteTenant() {
 void viewRooms() {
     syncRooms();
     
-    cout << "\n-------------\n";
-    cout << "   ROOM STATUS   ";
-    cout << "\n-------------\n";
-    for (auto &r : rooms) {
-        cout << r.first << " -> "
-             << r.second.occupants.size()
-             << "/" << r.second.capacity << " occupied\n";
+    cout << "\n--------------\n";
+    cout <<   " ROOM STATUS   ";
+    cout << "\n--------------\n";
+      for (int i = 1; i <= 10; i++) {
+        string roomName = "Room " + to_string(i);
+
+        cout << roomName << " -> "
+             << rooms[roomName].occupants.size()
+             << "/" << rooms[roomName].capacity
+             << " occupied\n";
     }
 }
-
 // ── SUMMARY ─────────────────────
 void summary() {
     syncRooms();
