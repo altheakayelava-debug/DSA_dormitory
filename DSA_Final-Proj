@@ -3,7 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <map>
-#include <iomanip>   
+#include <iomanip>
 
 using namespace std;
 
@@ -26,6 +26,7 @@ map<string, Room> rooms;
 
 // ── INITIALIZE ROOMS ─────────────────────
 void initializeRooms() {
+
     for (int i = 1; i <= 10; i++) {
         rooms["Room " + to_string(i)] = Room();
     }
@@ -33,6 +34,7 @@ void initializeRooms() {
 
 // ── SYNC ROOMS ─────────────────────
 void syncRooms() {
+
     for (auto &r : rooms) {
         r.second.occupants.clear();
     }
@@ -44,9 +46,11 @@ void syncRooms() {
 
 // ── SAVE DATA ─────────────────────
 void saveData() {
+
     ofstream file("data.txt");
 
     for (auto &t : tenants) {
+
         file << t.name << ","
              << t.age << ","
              << t.room << ","
@@ -58,14 +62,18 @@ void saveData() {
 
 // ── LOAD DATA ─────────────────────
 void loadData() {
+
     ifstream file("data.txt");
     string line;
 
     while (getline(file, line)) {
+
         stringstream ss(line);
+
         Tenant t;
 
         getline(ss, t.name, ',');
+
         ss >> t.age;
         ss.ignore();
 
@@ -76,10 +84,11 @@ void loadData() {
     }
 
     file.close();
+
     syncRooms();
 }
 
-// ── DISPLAY TENANTS ─────────────────────
+// ── VIEW TENANTS ─────────────────────
 void viewTenants() {
 
     if (tenants.empty()) {
@@ -87,55 +96,61 @@ void viewTenants() {
         return;
     }
 
-    cout << "\n====================================================================\n";
-    cout << "                           TENANTS LIST                             \n";
-    cout << "====================================================================\n";
+    cout << "\n=================================================================\n";
+    cout << "                         TENANTS LIST                            \n";
+    cout << "=================================================================\n";
 
+    // HEADER
     cout << left
          << setw(5)  << "No."
-         << setw(25) << "Name"
-         << setw(10) << "Age"
-         << setw(15) << "Room"
-         << setw(15) << "Payment"
+         << setw(30) << "Name"
+         << setw(8)  << "Age"
+         << setw(12) << "Room"
+         << setw(12) << "Payment"
          << endl;
 
-    cout << "--------------------------------------------------------------------\n";
+    cout << "-----------------------------------------------------------------\n";
 
+    // DISPLAY DATA
     for (int i = 0; i < tenants.size(); i++) {
+
         cout << left
              << setw(5)  << i + 1
-             << setw(25) << tenants[i].name
-             << setw(10) << tenants[i].age
-             << setw(15) << tenants[i].room
-             << setw(15) << tenants[i].payment
+             << setw(30) << tenants[i].name
+             << setw(8)  << tenants[i].age
+             << setw(12) << tenants[i].room
+             << setw(12) << tenants[i].payment
              << endl;
     }
 }
 
 // ── ADD TENANT ─────────────────────
 void addTenant() {
+
     Tenant t;
 
-    cout << "\n-------------------------\n";
-    cout << "      ADD TENANT         \n";
-    cout << "-------------------------\n";
+    cout << "\n----------------------\n";
+    cout << "      ADD TENANT      \n";
+    cout << "----------------------\n";
 
     cin.ignore();
 
-    cout << "Enter name: ";
+    cout << "Enter Name: ";
     getline(cin, t.name);
 
-    cout << "Enter age: ";
+    cout << "Enter Age: ";
     cin >> t.age;
 
     cin.ignore();
 
-    cout << "Enter room (Room 1 - Room 10): ";
+    cout << "Enter Room (Room 1 - Room 10): ";
     getline(cin, t.room);
 
     syncRooms();
 
+    // CHECK ROOM CAPACITY
     if (rooms[t.room].occupants.size() >= rooms[t.room].capacity) {
+
         cout << "Room FULL!\n";
         return;
     }
@@ -161,7 +176,8 @@ void updateTenant() {
     cin >> choice;
 
     if (choice < 1 || choice > tenants.size()) {
-        cout << "Invalid choice.\n";
+
+        cout << "Invalid choice!\n";
         return;
     }
 
@@ -199,7 +215,8 @@ void deleteTenant() {
     cin >> choice;
 
     if (choice < 1 || choice > tenants.size()) {
-        cout << "Invalid choice.\n";
+
+        cout << "Invalid choice!\n";
         return;
     }
 
@@ -215,17 +232,17 @@ void viewRooms() {
 
     syncRooms();
 
-    cout << "\n=======================================\n";
-    cout << "          ROOM STATUS           \n";
-    cout << "=======================================\n";
+    cout << "\n===================================\n";
+    cout << "            ROOM STATUS            \n";
+    cout << "===================================\n";
 
     cout << left
          << setw(15) << "Room"
-         << setw(15) << "Occupied"
-         << setw(15) << "Capacity"
+         << setw(12) << "Occupied"
+         << setw(12) << "Capacity"
          << endl;
 
-    cout << "---------------------------------------\n";
+    cout << "-----------------------------------\n";
 
     for (int i = 1; i <= 10; i++) {
 
@@ -233,8 +250,8 @@ void viewRooms() {
 
         cout << left
              << setw(15) << roomName
-             << setw(15) << rooms[roomName].occupants.size()
-             << setw(15) << rooms[roomName].capacity
+             << setw(12) << rooms[roomName].occupants.size()
+             << setw(12) << rooms[roomName].capacity
              << endl;
     }
 }
@@ -249,19 +266,21 @@ void summary() {
     int paid = 0;
 
     for (auto &r : rooms) {
+
         totalCapacity += r.second.capacity;
         occupied += r.second.occupants.size();
     }
 
     for (auto &t : tenants) {
+
         if (t.payment == "Paid") {
             paid++;
         }
     }
 
-    cout << "\n======================\n";
-    cout << "      SUMMARY       \n";
-    cout << "======================\n";
+    cout << "\n========================\n";
+    cout << "        SUMMARY         \n";
+    cout << "========================\n";
 
     cout << "Total Capacity : " << totalCapacity << endl;
     cout << "Occupied       : " << occupied << endl;
@@ -275,6 +294,7 @@ void summary() {
 int main() {
 
     initializeRooms();
+
     loadData();
 
     string again = "yes";
@@ -283,9 +303,9 @@ int main() {
 
         int choice;
 
-        cout << "\n=====================================\n";
-        cout << "      DORM MANAGEMENT SYSTEM         \n";
-        cout << "=====================================\n";
+        cout << "\n====================================\n";
+        cout << "      DORM MANAGEMENT SYSTEM        \n";
+        cout << "====================================\n";
 
         cout << "1. Add Tenant\n";
         cout << "2. View Tenants\n";
@@ -324,7 +344,7 @@ int main() {
                 break;
 
             default:
-                cout << "Invalid choice.\n";
+                cout << "Invalid choice!\n";
         }
 
         cout << "\nDo you want to continue? (yes/no): ";
