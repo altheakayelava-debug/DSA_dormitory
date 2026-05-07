@@ -169,18 +169,18 @@ void updateTenant() {
 
     cin.ignore();
 
-    cout << "New Name: ";
+    cout << "Name: ";
     getline(cin, t.name);
 
-    cout << "New Age: ";
+    cout << "Age: ";
     cin >> t.age;
 
     cin.ignore();
 
-    cout << "New Room: ";
+    cout << "Room: ";
     getline(cin, t.room);
 
-    cout << "New Payment: ";
+    cout << "Payment: ";
     getline(cin, t.payment);
 
     saveData();
@@ -215,9 +215,9 @@ void viewRooms() {
 
     syncRooms();
 
-    cout << "\n================================\n";
+    cout << "\n=======================================\n";
     cout << "          ROOM STATUS           \n";
-    cout << "================================\n";
+    cout << "=======================================\n";
 
     cout << left
          << setw(15) << "Room"
@@ -225,7 +225,7 @@ void viewRooms() {
          << setw(15) << "Capacity"
          << endl;
 
-    cout << "--------------------------------\n";
+    cout << "---------------------------------------\n";
 
     for (int i = 1; i <= 10; i++) {
 
@@ -259,9 +259,9 @@ void summary() {
         }
     }
 
-    cout << "\n====================\n";
+    cout << "\n======================\n";
     cout << "      SUMMARY       \n";
-    cout << "====================\n";
+    cout << "======================\n";
 
     cout << "Total Capacity : " << totalCapacity << endl;
     cout << "Occupied       : " << occupied << endl;
